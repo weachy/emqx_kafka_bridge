@@ -111,13 +111,12 @@ on_message_publish(Message = #message{id = MsgId,
                         timestamp  = Time
 						}, _Env) -> 
     io:format("publish ~s~n", [emqx_message:format(Message)]),
-    Key = iolist_to_binary([Topic]),
     Partition = proplists:get_value(partition, _Env),
     Now = erlang:timestamp(),
     Msg = [{client_id, From}, {node, node()}, {qos, Qos}, {payload, Payload}, {ts, emqx_time:now_secs(Now)}],
     {ok, MessageBody} = emqx_json:safe_encode(Msg),
     MsgPayload = iolist_to_binary(MessageBody),
-    ok = brod:produce_sync(brod_client_1, Topic, getPartiton(Key,Partition), Key, MsgPayload),
+    ok = brod:produce_sync(brod_client_1, Topic, getPartiton(Topic,Partition), Topic, MsgPayload),
     {ok, Message}.
 
 %% MQTT 消息进行投递
