@@ -118,7 +118,7 @@ on_message_publish(Message = #message{id = MsgId,
     {ok, MessageBody} = emqx_json:safe_encode(Msg),
     MsgPayload = iolist_to_binary(MessageBody),
     ok = brod:produce_sync(brod_client_1, "mqtt_to_kafka", getPartiton(Key,Partition), Key, MsgPayload),
-    {ok, Message}
+    {ok, Message}.
 
 %% MQTT 消息进行投递
 on_message_delivered(#{client_id := ClientId}, Message, _Env) ->
