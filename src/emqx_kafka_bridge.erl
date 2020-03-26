@@ -111,12 +111,18 @@ on_message_publish(Message = #message{id = MsgId,
                         timestamp  = Time
 						}, _Env) -> 
     io:format("publish ~s~n", [emqx_message:format(Message)]),
-    Now = erlang:timestamp(),
-    Msg = [{client_id, From}, {node, node()}, {qos, Qos}, {payload, Payload}, {ts, emqx_time:now_secs(Now)}],
-    {ok, MessageBody} = emqx_json:safe_encode(Msg),
-    MsgPayload = iolist_to_binary(MessageBody),
+    
     Key = iolist_to_binary(Topic),
-    ok = brod:produce_sync(brod_client_1, Topic, getPartition(Key, _Env), Key, MsgPayload),
+    case string:equal(Topic, "cardata") of
+        true ->
+            brod:produce_sync(brod_client_1, Topic, getPartition(Key, _Env), Key, Payload);
+        false ->
+            Now = erlang:timestamp(),
+            Msg = [{client_id, From}, {cluster_node, node()}, {topic, Topic}, {qos, Qos}, {payload, Payload}, {ts, emqx_time:now_secs(Now)}],
+            {ok, MessageBody} = emqx_json:safe_encode(Msg),
+            MsgPayload = iolist_to_binary(MessageBody),
+            ok = brod:produce_sync(brod_client_1, "mqtt_to_kafka", getPartition(Key, _Env), Key, MsgPayload)
+    end,
     {ok, Message}.
 
 %% MQTT 消息进行投递
