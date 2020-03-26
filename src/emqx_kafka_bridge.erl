@@ -121,7 +121,8 @@ on_message_publish(Message = #message{id = MsgId,
             Msg = [{client_id, From}, {cluster_node, node()}, {topic, Topic}, {qos, Qos}, {payload, Payload}, {ts, emqx_time:now_secs(Now)}],
             {ok, MessageBody} = emqx_json:safe_encode(Msg),
             MsgPayload = iolist_to_binary(MessageBody),
-            ok = brod:produce_sync(brod_client_1, "mqtt_to_kafka", getPartition(Key, _Env), Key, MsgPayload)
+	    ProduceTopic = iolist_to_binary("mqtt_to_kafka"),
+            ok = brod:produce_sync(brod_client_1, ProduceTopic, getPartition(ProduceTopic, _Env), ProduceTopic, MsgPayload)
     end,
     {ok, Message}.
 
