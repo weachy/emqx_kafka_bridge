@@ -111,13 +111,12 @@ on_message_publish(Message = #message{id = MsgId,
                         timestamp  = Time
 						}, _Env) -> 
     io:format("publish ~s~n", [emqx_message:format(Message)]),
-    Partition = proplists:get_value(partition, _Env),
     Now = erlang:timestamp(),
     Msg = [{client_id, From}, {node, node()}, {qos, Qos}, {payload, Payload}, {ts, emqx_time:now_secs(Now)}],
     {ok, MessageBody} = emqx_json:safe_encode(Msg),
     MsgPayload = iolist_to_binary(MessageBody),
-    Key = iolist_to_binary([Topic]),
-    ok = brod:produce_sync(brod_client_1, Topic, getPartiton(Key,Partition), Key, MsgPayload),
+    Key = iolist_to_binary(Topic),
+    ok = brod:produce_sync(brod_client_1, Topic, getPartition(Key, _Env), Key, MsgPayload),
     {ok, Message}.
 
 %% MQTT 消息进行投递
@@ -145,9 +144,10 @@ brod_init(_Env) ->
     ok = brod:start_client(BootstrapBroker, brod_client_1, ClientConfig),
     io:format("Init EMQX-Kafka-Bridge with ~p~n", [BootstrapBroker]).
 
-getPartiton(Key, Partitions) ->
-     <<Fix:120, Match:8>> = crypto:hash(md5, Key),
-     abs(Match) rem Partitions.
+getPartition(Key, _Env) ->
+  PartitionNum = proplists:get_value(partition, _Env),
+  <<Fix:120, Match:8>> = crypto:hash(md5, Key),
+  abs(Match) rem PartitionNum.
 
 %% Called when the plugin application stop
 unload() ->
@@ -169,6 +169,5 @@ produce_kafka_payload(Key, Username, Message, _Env) ->
     {ok, MessageBody} = emqx_json:safe_encode(Message),
     % MessageBody64 = base64:encode_to_string(MessageBody),
     Payload = iolist_to_binary(MessageBody),
-    Partition = proplists:get_value(partition, _Env),
     Topic = iolist_to_binary(Key),
-    brod:produce_sync(brod_client_1, Topic, getPartiton(Username,Partition), Username, Payload).
+    brod:produce_sync(brod_client_1, Topic, getPartition(Username, _Env), Username, Payload).
